@@ -2,7 +2,7 @@
 
 ##############################################################################
 #                                                                            #
-# Copyright 2011, Mike Cardwell - https://secure.grepular.com/               #
+# Copyright 2011, Mike Cardwell - https://grepular.com/                      #
 #                                                                            #
 # This program is free software; you can redistribute it and/or modify       #
 # it under the terms of the GNU General Public License as published by       #
