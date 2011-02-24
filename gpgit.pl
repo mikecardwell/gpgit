@@ -27,6 +27,7 @@ use MIME::Parser;
 
 ## Parse args
   my $recipient_email = $ARGV[0]||'';
+  die "Bad arguments. Must supply a valid email address" unless $recipient_email =~ /^.+\@.+$/;
 
 ## Object for GPG encryption
   my $gpg = new Mail::GnuPG();
