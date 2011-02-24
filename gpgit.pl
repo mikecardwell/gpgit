@@ -26,18 +26,21 @@ use Mail::GnuPG;
 use MIME::Parser;
 
 ## Parse args
-  my $recipient_email = $ARGV[0]||'';
-  die "Bad arguments. Must supply a valid email address" unless $recipient_email =~ /^.+\@.+$/;
+  my @recipients = @ARGV;
+  die "Bad arguments. Missing email address\n" unless int(@recipients);
+  die "Bad arguments. Invalid email address\n" if grep( !/^.+\@.+$/, @recipients );
 
 ## Object for GPG encryption
   my $gpg = new Mail::GnuPG();
 
-## Make sure we have the appropriate public key
-  unless( $gpg->has_public_key( $recipient_email ) ){
-     while(<STDIN>){
-        print;
+## Make sure we have the appropriate public key for all recipients
+  foreach( @recipients ){
+     unless( $gpg->has_public_key( $_ ) ){
+        while(<STDIN>){
+           print;
+        }
+        exit 0;
      }
-     exit 0;
   }
 
 ## Read the plain text email
@@ -66,8 +69,8 @@ use MIME::Parser;
      $mime->make_singlepart;
 
      my $code = $mime->mime_type =~ /^text\/plain/
-              ? $gpg->ascii_encrypt( $mime, $recipient_email )
-              : $gpg->mime_encrypt(  $mime, $recipient_email );
+              ? $gpg->ascii_encrypt( $mime, @recipients )
+              : $gpg->mime_encrypt(  $mime, @recipients );
      
      if( $code ){
         print $plain;

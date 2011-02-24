@@ -3,7 +3,8 @@ See https://grepular.com/Automatically_Encrypting_all_Incoming_Email
 This application takes one argument on the command line. The email address to
 look up the public key that the message will be encrypted with. An email
 message is piped through the application, and the resulting email is sent to
-STDOUT encrypted with the relevant public key.
+STDOUT encrypted with the relevant public key. If you provide multiple email
+addresses, then the message will be encrypted with multiple keys.
 
 If the message is already encrypted, it doesn't get encrypted a second time. If
 the message has multiple parts, PGP/MIME is used, otherwise inline PGP is used.
