@@ -26,9 +26,28 @@ use Mail::GnuPG;
 use MIME::Parser;
 
 ## Parse args
-  my @recipients = @ARGV;
-  die "Bad arguments. Missing email address\n" unless int(@recipients);
-  die "Bad arguments. Invalid email address\n" if grep( !/^.+\@.+$/, @recipients );
+  my $encrypt_mode = 'pgpmime';
+  my @recipients   = ();
+  {
+     help() unless @ARGV;
+     my @args = @ARGV;
+     while( @args ){
+        my $key = shift @args;
+	if( $key eq '--help' || $key eq '-h' ){
+	   help();
+	} elsif( $key eq '--encrypt-mode' ){
+	   $encrypt_mode = shift @args;
+	   unless( defined $encrypt_mode && grep( $encrypt_mode eq $_, 'prefer-inline', 'pgpmime', 'inline-or-plain' ) ){
+	      die "Bad value for --encrypt-mode\n";
+	   }
+	} elsif( $key =~ /^.+\@.+$/ ){
+	   push @recipients, $key;
+	} else {
+           die "Bad argument: $key\n";
+	}
+     }
+     die "Missing recipients\n" unless @recipients;
+  }
 
 ## Object for GPG encryption
   my $gpg = new Mail::GnuPG();
@@ -68,10 +87,21 @@ use MIME::Parser;
   {
      $mime->make_singlepart;
 
-     my $code = $mime->mime_type =~ /^text\/plain/
+     my $code;
+     if( $encrypt_mode eq 'pgpmime' ){
+        $code = $gpg->mime_encrypt( $mime, @recipients );
+     } elsif( $encrypt_mode eq 'prefer-inline' ){
+        $code = $mime->mime_type =~ /^text\/plain/
               ? $gpg->ascii_encrypt( $mime, @recipients )
               : $gpg->mime_encrypt(  $mime, @recipients );
-     
+     } elsif( $encrypt_mode eq 'inline-or-plain' ){
+        if( $mime->mime_type =~ /^text\/plain/ ){
+	   $code = $gpg->ascii_encrypt( $mime, @recipients );
+	} else {
+	   print $plain; exit 0;
+	}
+     }
+
      if( $code ){
         print $plain;
 	exit 0;
@@ -83,3 +113,28 @@ use MIME::Parser;
 
 ## Print out the encrypted version
   print $mime->stringify;
+
+sub help {
+   print << "END_HELP";
+Usage: gpgit.pl recipient1 recipient2
+
+Gpgit takes a list of email addresses as its arguments. The email is encrypted
+using the public keys associated with those email addresses.
+
+Optional arguments:
+
+  --help or -h
+
+Display this usage information.
+
+  --encrypt-mode prefer-inline / pgpmime / inline-or-plain
+
+Single part text emails can be encrypted inline, or using PGP/MIME. Multi-part
+emails can only be encrypted using PGP/MIME. "pgpmime" is the default for this
+argument and means we will always use PGP/MIME. "prefer-inline" means that we
+will use inline if possible, and PGP/MIME if not. "inline-or-plain" will use
+inline encryption for single part emails, and no encryption for multi-part
+emails.
+END_HELP
+  exit 0;
+}

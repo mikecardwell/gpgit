@@ -25,12 +25,6 @@ it. Patches welcome.
 
   --on-missing-key        output-plain  / discard-recipient / die
 
-6.) At the moment, we prefer inline encryption and fall back to PGP/MIME if
-    the message is multipart. Should provide several different optional modes
-    of encryption.
-
-  --encrypt-mode          prefer-inline / pgpmime / inline-or-plain
-
-7.) Optionally specify path to the gpg "homedir" on the command line
+6.) Optionally specify path to the gpg "homedir" on the command line
 
   --gpg-home              path-to-gnupg-directory
