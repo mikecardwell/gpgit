@@ -4,10 +4,12 @@ This application takes one argument on the command line. The email address to
 look up the public key that the message will be encrypted with. An email
 message is piped through the application, and the resulting email is sent to
 STDOUT encrypted with the relevant public key. If you provide multiple email
-addresses, then the message will be encrypted with multiple keys.
+addresses, then the message will be encrypted with multiple keys. There are
+several options to do with the type of encryption used, ie PGP/MIME or inline
+and these can be discovered by running the script without any arguments to
+read the usage information.
 
-If the message is already encrypted, it doesn't get encrypted a second time. If
-the message has multiple parts, PGP/MIME is used, otherwise inline PGP is used.
+If the message is already encrypted, it doesn't get encrypted a second time.
 
 Exim users can use the transport_filter directive in a transport in order to
 call this application, like so:
