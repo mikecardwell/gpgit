@@ -49,6 +49,9 @@ use MIME::Parser;
      die "Missing recipients\n" unless @recipients;
   }
 
+## Set the home environment variable from the user running the script
+  $ENV{HOME} = (getpwuid($>))[7];
+
 ## Object for GPG encryption
   my $gpg = new Mail::GnuPG();
 
