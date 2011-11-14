@@ -26,8 +26,9 @@ use Mail::GnuPG;
 use MIME::Parser;
 
 ## Parse args
-  my $encrypt_mode = 'pgpmime';
-  my @recipients   = ();
+  my $encrypt_mode           = 'pgpmime';
+  my $alternative_strip_html = 0;
+  my @recipients             = ();
   {
      help() unless @ARGV;
      my @args = @ARGV;
@@ -40,6 +41,8 @@ use MIME::Parser;
 	   unless( defined $encrypt_mode && grep( $encrypt_mode eq $_, 'prefer-inline', 'pgpmime', 'inline-or-plain' ) ){
 	      die "Bad value for --encrypt-mode\n";
 	   }
+	} elsif( $key eq '--alternative-strip-html' ){
+           $alternative_strip_html = 1;
 	} elsif( $key =~ /^.+\@.+$/ ){
 	   push @recipients, $key;
 	} else {
@@ -84,6 +87,23 @@ use MIME::Parser;
 ## Test if it is already encrypted
   if( $gpg->is_encrypted( $mime ) ){
      print $plain; exit 0;
+  }
+
+## When we're in prefer-inline or inline-or-plain mode, we can't encrypt the common multipart/alternative,
+## "text/plain followed by text/html" emails. Well, if we strip the HTML part, we can.
+
+  if( $alternative_strip_html ){
+     if( $encrypt_mode eq 'prefer-inline' || $encrypt_mode eq 'inline-or-plain' ){
+        if( $mime->mime_type eq 'multipart/alternative' ){
+           my @parts = $mime->parts();
+           if( int(@parts) == 2 && $parts[0]->mime_type eq 'text/plain' && $parts[1]->mime_type eq 'text/html' ){
+              ## Only do this when the body of the text/plain part is at least 10 characters long. Handling empty text/plain parts
+                my $body = $parts[0]->bodyhandle->as_string;
+                $body =~ s/^[\s\r\n]*(.*?)[\s\r\n]*$/$1/s;
+                $mime->parts([$parts[0]]) if length($body) >= 10;
+	   }
+        }
+     }
   }
 
 ## Encrypt
@@ -138,6 +158,19 @@ argument and means we will always use PGP/MIME. "prefer-inline" means that we
 will use inline if possible, and PGP/MIME if not. "inline-or-plain" will use
 inline encryption for single part emails, and no encryption for multi-part
 emails.
+
+  --alternative-strip-html
+
+multipart/alternative emails containing a text/plain part followed by a
+text/html part are quite common. These emails can only be encrypted using
+PGP/MIME. So in inline-or-plain mode, they wont be encrypted, and in
+prefer-inline mode, they will be encrypted using PGP/MIME. If you enable
+this option, we strip off the HTML part of these emails, and pack them down
+into a single part email so that inline encryption can be used. This only
+happens if the body of the text/plain part is at least 10 characters long
+as we don't want to keep blank text/plain parts. The text/plain and
+text/html parts *should* contain the same information, so this *should*
+be safe. It is disabled by default though.
 END_HELP
   exit 0;
 }
