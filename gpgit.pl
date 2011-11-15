@@ -112,6 +112,9 @@ use MIME::Parser;
 	   ## version of the message so we can fall back to the original if we don't manage to flatten all the way
              my $new_mime = $mime->dup;
 
+           ## Remember the original MIME structure so we can add it to an information header
+             my $orig_mime_structure = mime_structure( $mime );
+
 	   ## We may already be able to safely flatten, if we have a multipart/x message with only a single child part. Unlikely
              $new_mime->make_singlepart;
 
@@ -120,7 +123,10 @@ use MIME::Parser;
              flatten_alternative( $new_mime ) if $new_mime->mime_type eq 'multipart/alternative';
 
            ## Keep the new message if it was succesfully flattened
-             $mime = $new_mime if $new_mime->mime_type !~ /^multipart\//;
+             if( $new_mime->mime_type !~ /^multipart\// ){
+                $new_mime->head->add('X-GPGIT-Flattened-From', $orig_mime_structure );
+                $mime = $new_mime;
+             }
         }
      }
   }
@@ -226,6 +232,16 @@ use MIME::Parser;
        $html =~ s/=\s*["']cid:(.+?)["'\s\/>]/push @cids,$1/egoism;
 
      return @cids;
+  }
+
+  sub mime_structure {
+     my $entity = shift;
+     if( $entity->mime_type =~ /^multipart\/.+/ ){
+        my @parts = $entity->parts;
+	return $entity->mime_type.'('.join(",",map {mime_structure($_)} @parts).')';
+     } else {
+        return $entity->mime_type;
+     }
   }
 
 sub help {
