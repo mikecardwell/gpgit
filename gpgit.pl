@@ -229,7 +229,7 @@ use MIME::Parser;
 
      ## Parse out cid urls
        my @cids;
-       $html =~ s/=\s*["']cid:(.+?)["'\s\/>]/push @cids,$1/egoism;
+       $html =~ s/=\s*["']?cid:(.+?)["'\s\/>]/push @cids,$1/egoism;
 
      return @cids;
   }
