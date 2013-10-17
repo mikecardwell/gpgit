@@ -249,7 +249,8 @@ sub help {
 Usage: gpgit.pl recipient1 recipient2
 
 Gpgit takes a list of email addresses as its arguments. The email is encrypted
-using the public keys associated with those email addresses.
+using the public keys associated with those email addresses. Those public keys
+*MUST* have been assigned "Ultimate" trust or it wont work.
 
 Optional arguments:
 
