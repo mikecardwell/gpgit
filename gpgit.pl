@@ -59,7 +59,7 @@ use MIME::Parser;
   $ENV{HOME} = (getpwuid($>))[7];
 
 ## Object for GPG encryption
-  my $gpg = new Mail::GnuPG();
+  my $gpg = new Mail::GnuPG( always_trust => 1 );
 
 ## Make sure we have the appropriate public key for all recipients
   foreach( @recipients ){

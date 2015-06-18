@@ -11,9 +11,6 @@ read the usage information.
 
 If the message is already encrypted, it doesn't get encrypted a second time.
 
-In order to be able to use a public key, it *MUST* have been assigned
-"Ultimate" trust, or it wont work.
-
 Exim users can use the transport_filter directive in a transport in order to
 call this application, like so:
 
