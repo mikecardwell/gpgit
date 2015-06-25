@@ -28,6 +28,8 @@ use MIME::Parser;
 ## Parse args
   my $encrypt_mode   = 'pgpmime';
   my $inline_flatten = 0;
+  my $skip_smime     = 0;
+  my $skip_ms_bug  = 0;
   my @recipients     = ();
   {
      help() unless @ARGV;
@@ -43,6 +45,10 @@ use MIME::Parser;
 	   }
 	} elsif( $key eq '--inline-flatten' ){
            $inline_flatten = 1;
+	} elsif( $key eq '--skip-smime' ){
+           $skip_smime = 1;
+	} elsif( $key eq '--skip-ms-bug' ){
+           $skip_ms_bug = 1;
 	} elsif( $key =~ /^.+\@.+$/ ){
 	   push @recipients, $key;
 	} else {
@@ -91,6 +97,39 @@ use MIME::Parser;
   if( $gpg->is_encrypted( $mime ) ){
      print $plain; exit 0;
   }
+
+## Test if the email is S/MIME encrypted - already encrypted if so
+  if( $skip_smime ) {
+    if( $mime->mime_type =~ /^application\/pkcs7-mime/ ){
+      print $plain; exit 0;
+    }
+  } 
+
+## Detect broken MS Exchange PGP/MIME messages
+## All that is needed here is to detect them and pass them through
+## as Enigmail will compensate for the brokenness. Ideally one day 
+## this script could patch up the emails, its not super difficult.
+  if( $skip_ms_bug ) {
+    ## Exchange turns multipart/encrypted into multipart/mixed
+    if( $mime->mime_type =~ /^multipart\/mixed/) {
+      my $seen_pgp_id = 0;
+      for (my $i=0; $i < $mime->parts; $i++) {
+        my $part = $mime->parts($i);
+        my $header = $part->head();
+        ## test for a part with pgp-encrypted PGP/MIME identification file
+        if( $part->mime_type =~ /^application\/pgp-encrypted$/ &&
+            $header->recommended_filename =~ /^PGP.*MIME.*[Ii]dentification$/ ) {
+          $seen_pgp_id = 1;
+          last;
+        }
+      }
+      if( $seen_pgp_id ) {
+        ## this is a buggy ms exchange pgp/mime
+        print $plain; exit 0;
+      }
+    }
+  }
+
 
 ## If the user has specified that they prefer/need inline encryption, instead of PGP/MIME, and the email is multipart, then
 ## we need to attempt to flatten the message down into a single text/plain part. There are a couple of safe'ish lossy ways of
@@ -285,6 +324,20 @@ I believe them to be safe(ish):
     referring to them, and so they *should* be redundant. We don't just
     remove image parts, we only remove "related" image parts that are
     referred by using CID URLs pointing at their Content-Id headers.
+
+  --skip-smime
+
+Use this option to not encrypt a message that is already encrypted with
+S/MIME. This is very useful if you have both PGP and S/MIME encryption 
+for the same email account.
+
+  --skip-ms-bug
+
+MS Exchange servers are known to corrupt PGP/MIME messages by changing
+content-type and nesting MIME parts. Use this option to enable detection
+of buggy Exchange PGP/MIME messages and pass them through. Enigmail will
+fix these messages.
+
 END_HELP
   exit 0;
 }
